@@ -1,67 +1,34 @@
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
-from datetime import datetime
 import os
 
-def generate_invoice_pdf(data, invoice_id):
-    os.makedirs('invoices', exist_ok=True)
-    path = f"invoices/invoice_{invoice_id}.pdf"
-
-    c = canvas.Canvas(path, pagesize=A4)
-    width, height = A4
-
-    y = height - 50
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(50, y, f"INVOICE ID: {invoice_id}")
-    y -= 20
+def generate_pdf(customer_name, customer_address, product_list, total_amount):
+    file_path = f"generated_bills/{customer_name}_bill.pdf"
+    
+    # Ensure the directory exists
+    if not os.path.exists("generated_bills"):
+        os.makedirs("generated_bills")
+    
+    # Create PDF
+    c = canvas.Canvas(file_path, pagesize=letter)
+    
     c.setFont("Helvetica", 12)
-    c.drawString(50, y, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    y -= 30
-
-    c.drawString(50, y, f"Customer: {data['name'][0]}")
-    y -= 20
-    c.drawString(50, y, f"Phone: {data['phone'][0]}")
-    y -= 20
-    c.drawString(50, y, f"Email: {data['email'][0]}")
-    y -= 20
-    c.drawString(50, y, f"Address: {data['address'][0]}")
-    y -= 30
-
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Items:")
-    y -= 20
-    c.setFont("Helvetica", 11)
-
-    subtotal = 0
-    for i in range(len(data['product'])):
-        try:
-            if not data['product'][i]: continue
-            qty = int(data['qty'][i])
-            price = float(data['price'][i])
-            total = qty * price
-            c.drawString(60, y, f"{data['product'][i]} - {qty} x ₹{price} = ₹{total:.2f}")
-            y -= 20
-            subtotal += total
-        except: continue
-
-    c.drawString(50, y, f"Subtotal: ₹{subtotal:.2f}")
-    y -= 20
-    gst = float(data.get('gst', ['18'])[0] or 18)
-    gst_amount = subtotal * gst / 100
-    c.drawString(50, y, f"GST ({gst}%): ₹{gst_amount:.2f}")
-    y -= 20
-
-    discount = float(data.get('discount', ['0'])[0] or 0)
-    discount_amount = (subtotal + gst_amount) * discount / 100
-    c.drawString(50, y, f"Discount ({discount}%): ₹{discount_amount:.2f}")
-    y -= 20
-
-    grand_total = subtotal + gst_amount - discount_amount
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, f"Total Payable: ₹{grand_total:.2f}")
-    y -= 40
-
-    c.setFont("Helvetica-Oblique", 11)
-    c.drawString(50, y, "Thank you for your business!")
+    
+    # Adding customer information
+    c.drawString(100, 750, f"Customer Name: {customer_name}")
+    c.drawString(100, 735, f"Address: {customer_address}")
+    
+    # Adding products
+    c.drawString(100, 700, "Products:")
+    y = 680
+    for product in product_list.split(','):
+        c.drawString(100, y, f"- {product.strip()}")
+        y -= 20
+    
+    # Adding total amount
+    c.drawString(100, y - 20, f"Total Amount: {total_amount}")
+    
+    # Save the PDF
     c.save()
-    return path
+    
+    return file_path
